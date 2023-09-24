@@ -1,0 +1,120 @@
+package com.example.notesapp;
+
+
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import androidx.appcompat.app.AppCompatActivity;
+import android.widget.EditText;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Locale;
+
+public class NoteEditorActivity extends AppCompatActivity {
+
+    EditText lectureTitleEditText; // Declare the EditText
+    Button saveButton; // Declare the Button
+    int noteId;
+    EditText editText;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_note_editor);
+
+        lectureTitleEditText = findViewById(R.id.lectureTitleEditText); // Initialize the EditText
+        saveButton = findViewById(R.id.saveButton); // Initialize the Button
+        editText = findViewById(R.id.editText);
+
+        // Fetch data that is passed from MainActivity
+        Intent intent = getIntent();
+// Accessing the data using key and value
+        noteId = intent.getIntExtra("noteId", -1);
+        if (noteId != -1) {
+            String[] noteData = ListOfNotes.notes.get(noteId).split("\n", 2);
+            if (noteData.length == 2) {
+                lectureTitleEditText.setText(noteData[0]);
+                editText.setText(noteData[1]);
+            }
+        } else {
+            ListOfNotes.notes.add("");
+            noteId = ListOfNotes.notes.size() - 1;
+            ListOfNotes.arrayAdapter.notifyDataSetChanged();
+        }
+
+        editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                String currentDateAndTime = getCurrentDateAndTime();
+                String updatedNote = String.valueOf(charSequence) + "\n\nLast edited: " + currentDateAndTime;
+                ListOfNotes.notes.set(noteId, updatedNote);
+                ListOfNotes.arrayAdapter.notifyDataSetChanged();
+
+                // Creating Object of SharedPreferences to store data in the phone
+                SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("com.example.notes", Context.MODE_PRIVATE);
+                HashSet<String> set = new HashSet(ListOfNotes.notes);
+                sharedPreferences.edit().putStringSet("notes", set).apply();
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+            }
+        });
+
+        saveButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                saveNote();
+            }
+        });
+    }
+
+    private String getCurrentDateAndTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        return sdf.format(new Date());
+    }
+
+    private void saveNote() {
+        // Implement your logic to save the note
+        // Combine lecture title and note content
+       /*  String lectureTitle = lectureTitleEditText.getText().toString();
+        String editedText = lectureTitle + "\n" + editText.getText().toString();
+
+//        String editedText = editText.getText().toString();
+//        String currentDateAndTime = getCurrentDateAndTime();
+//        String updatedNote = editedText + "\n\nLast edited: " + currentDateAndTime;
+//        MainActivity.notes.set(noteId, updatedNote);
+//        MainActivity.arrayAdapter.notifyDataSetChanged();
+
+        MainActivity.notes.set(noteId, editedText);
+        MainActivity.arrayAdapter.notifyDataSetChanged(); */
+
+        String editedTitle = lectureTitleEditText.getText().toString();
+        String editedText = editText.getText().toString();
+        String currentDate = DateFormat.getDateTimeInstance().format(new Date()); // Get current date and time
+        String combinedNote = editedTitle  + "\n" + editedText + " \n\nLast Edited: " + currentDate;
+
+        ListOfNotes.notes.set(noteId, combinedNote);
+        ListOfNotes.arrayAdapter.notifyDataSetChanged();
+
+        // Store the updated notes in SharedPreferences
+        SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("com.example.notes", Context.MODE_PRIVATE);
+        HashSet<String> set = new HashSet(ListOfNotes.notes);
+        sharedPreferences.edit().putStringSet("notes", set).apply();
+
+        finish(); // Close the NoteEditorActivity after saving
+    }
+}
